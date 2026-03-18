@@ -1,3 +1,19 @@
+const PORTAL_STORAGE_KEY = "isp_portal_user";
+
+function savePortalUser(user) {
+  localStorage.setItem(PORTAL_STORAGE_KEY, JSON.stringify(user || {}));
+}
+
+function getPortalUser() {
+  try {
+    const raw = localStorage.getItem(PORTAL_STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (err) {
+    return null;
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const existing = getPortalUser();
   if (existing && existing.account_no) {
