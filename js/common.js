@@ -1,65 +1,8 @@
-const PORTAL_STORAGE_KEY = "isp_portal_user";
+const STORAGE_KEY_USER = "isp_current_user";
 
-function getApiBaseUrl() {
-  if (typeof APP_CONFIG === "undefined" || !APP_CONFIG || !APP_CONFIG.API_BASE_URL) {
-    throw new Error("Missing APP_CONFIG.API_BASE_URL");
-  }
-  return String(APP_CONFIG.API_BASE_URL).trim();
-}
-
-function buildApiUrl(params = {}) {
-  const url = new URL(getApiBaseUrl());
-  Object.keys(params || {}).forEach((key) => {
-    const value = params[key];
-    if (value !== undefined && value !== null && String(value) !== "") {
-      url.searchParams.set(key, value);
-    }
-  });
-  url.searchParams.set("_ts", Date.now().toString());
-  return url.toString();
-}
-
-async function apiGet(params = {}) {
-  const response = await fetch(buildApiUrl(params), {
-    method: "GET",
-    redirect: "follow"
-  });
-
-  const text = await response.text();
+function getCurrentUser() {
   try {
-    return JSON.parse(text);
-  } catch (err) {
-    console.error("GET invalid JSON:", text);
-    throw new Error("Server returned invalid JSON.");
-  }
-}
-
-async function apiPost(payload = {}) {
-  const response = await fetch(getApiBaseUrl(), {
-    method: "POST",
-    redirect: "follow",
-    headers: {
-      "Content-Type": "text/plain;charset=utf-8"
-    },
-    body: JSON.stringify(payload || {})
-  });
-
-  const text = await response.text();
-  try {
-    return JSON.parse(text);
-  } catch (err) {
-    console.error("POST invalid JSON:", text);
-    throw new Error("Server returned invalid JSON.");
-  }
-}
-
-function savePortalUser(user) {
-  localStorage.setItem(PORTAL_STORAGE_KEY, JSON.stringify(user || {}));
-}
-
-function getPortalUser() {
-  try {
-    const raw = localStorage.getItem(PORTAL_STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY_USER);
     if (!raw) return null;
     return JSON.parse(raw);
   } catch (err) {
@@ -67,9 +10,17 @@ function getPortalUser() {
   }
 }
 
-function portalLogout() {
-  localStorage.removeItem(PORTAL_STORAGE_KEY);
-  window.location.href = "portal-login.html";
+function saveCurrentUser(user) {
+  localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(user || {}));
+}
+
+function clearCurrentUser() {
+  localStorage.removeItem(STORAGE_KEY_USER);
+}
+
+function logout() {
+  clearCurrentUser();
+  window.location.href = "index.html";
 }
 
 function showMessage(elementId, message, isError = false) {
@@ -99,16 +50,51 @@ function escapeHtml(value) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/\"/g, "&quot;")
+    .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
 
-function setText(id, value) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = String(value ?? "");
+async function apiGet(params = {}) {
+  const url = new URL(APP_CONFIG.API_BASE_URL);
+
+  Object.keys(params || {}).forEach(key => {
+    const value = params[key];
+    if (value !== undefined && value !== null && String(value) !== "") {
+      url.searchParams.set(key, value);
+    }
+  });
+
+  url.searchParams.set("_ts", Date.now().toString());
+
+  const response = await fetch(url.toString(), {
+    method: "GET"
+  });
+
+  const text = await response.text();
+
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    console.error("GET raw response:", text);
+    throw new Error("Server returned invalid JSON.");
+  }
 }
 
-function setValue(id, value) {
-  const el = document.getElementById(id);
-  if (el) el.value = value ?? "";
+async function apiPost(payload = {}) {
+  const response = await fetch(APP_CONFIG.API_BASE_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "text/plain;charset=utf-8"
+    },
+    body: JSON.stringify(payload || {})
+  });
+
+  const text = await response.text();
+
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    console.error("POST raw response:", text);
+    throw new Error("Server returned invalid JSON.");
+  }
 }
