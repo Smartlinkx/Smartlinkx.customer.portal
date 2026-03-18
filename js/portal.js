@@ -1,5 +1,23 @@
+const PORTAL_STORAGE_KEY = "isp_portal_user";
+
+function getPortalUser() {
+  try {
+    const raw = localStorage.getItem(PORTAL_STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (err) {
+    return null;
+  }
+}
+
+function portalLogout() {
+  localStorage.removeItem(PORTAL_STORAGE_KEY);
+  window.location.href = "portal-login.html";
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   const user = getPortalUser();
+
   if (!user || !user.account_no) {
     window.location.href = "portal-login.html";
     return;
@@ -9,6 +27,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (logoutBtn) logoutBtn.addEventListener("click", portalLogout);
 
   setText("portalWelcomeText", `Welcome, ${user.full_name || user.account_no}`);
+
   await loadPortalDashboard(user.account_no);
 });
 
@@ -91,4 +110,14 @@ function renderPortalPayments(data) {
       <td>${escapeHtml(item.reference)}</td>
     </tr>
   `).join("");
+}
+
+function setText(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = String(value ?? "");
+}
+
+function setValue(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.value = value ?? "";
 }
